@@ -148,7 +148,7 @@ class Line():
         #polynomial coefficients averaged over the last n iterations
         self.best_fit = None  
         #polynomial coefficients for the most recent fit
-        self.current_fit = [np.array([False])]  
+        self.current_fit = [False]  
         #radius of curvature of the line in  km
         self.radius_of_curvature = None 
         #distance in meters of vehicle center from the line
@@ -166,13 +166,10 @@ left_line = Line()
 right_line = Line()
 
 # keep last n records
-keep_num = 10
+keep_max = 10
 
-# true if need to relocate starting base location of left line and right line
-lane_relocate = True
-
-# max tolerant variation
-max_var = 0.5
+# max tolerant deviation from last average position
+max_dev = 50
 
 # Choose the number of sliding windows
 nwindows = 9
@@ -185,6 +182,10 @@ minpix = 50
 # Define conversions in x and y from pixels space to meters
 ym_per_pix = 30/720000 # kilometers per pixel in y dimension
 xm_per_pix = 3.7/700000 # kilometers per pixel in x dimension
+
+# Define lane line coefficients
+left_fit = None
+right_fit = None
 
 # get nonzeros points
 def get_nonzeros(binary_warped = None,out_img = None, window_height = 0, leftx_current = 0,rightx_current = 0,window=0,nonzerox=None,nonzeroy=None):
@@ -230,8 +231,8 @@ def pipeline(image = None):
     # arrays for detected left lane indexes and right lane indexes
     left_lane_inds, right_lane_inds = [],[]
 
-
-    if lane_relocate:
+    # If lane line not detected last time for either track, then restart blind search
+    if not left_line.detected or not right_line.detected:
                 # Take a histogram of the bottom half of the image
         histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
         # Find the peak of the left and right halves of the histogram
@@ -310,13 +311,13 @@ def pipeline(image = None):
         left_lane_inds = np.concatenate(left_lane_inds)
         right_lane_inds = np.concatenate(right_lane_inds)
     else:
-        left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + 
-        left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + 
-        left_fit[1]*nonzeroy + left_fit[2] + margin))) 
+        left_lane_inds = ((nonzerox > (left_line.current_fit[0]*(nonzeroy**2) + left_line.current_fit[1]*nonzeroy + 
+        left_line.current_fit[2] - margin)) & (nonzerox < (left_line.current_fit[0]*(nonzeroy**2) + 
+        left_line.current_fit[1]*nonzeroy + left_line.current_fit[2] + margin))) 
 
-        right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + 
-        right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) + 
-        right_fit[1]*nonzeroy + right_fit[2] + margin)))  
+        right_lane_inds = ((nonzerox > (right_line.current_fit[0]*(nonzeroy**2) + right_line.current_fit[1]*nonzeroy + 
+        right_line.current_fit[2] - margin)) & (nonzerox < (right_line.current_fit[0]*(nonzeroy**2) + 
+        right_line.current_fit[1]*nonzeroy + right_line.current_fit[2] + margin)))  
     # Extract left and right line pixel positions
     leftx = nonzerox[left_lane_inds]
     lefty = nonzeroy[left_lane_inds] 
@@ -326,6 +327,16 @@ def pipeline(image = None):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
+
+    print(left_fit.shape)
+    # update tracking class parameter
+    if left_line.current_fit[0] is not False:
+        left_line.diffs = left_fit - left_line.current_fit
+    left_line.current_fit = left_fit
+
+    if right_line.current_fit[0] is not False:
+        right_line.diffs = right_fit - right_line.current_fit
+    right_line.current_fit = right_fit
 
     # Generate x and y values for plotting
     ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
@@ -342,11 +353,60 @@ def pipeline(image = None):
     # Fit new polynomials to x,y in world space
     left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
     right_fit_cr = np.polyfit(righty*ym_per_pix, rightx*xm_per_pix, 2)
+
+    # Calculate 
     # Calculate the new radii of curvature
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-    # Now our radius of curvature is in meters
-    print(left_curverad, 'km', right_curverad, 'km')
+
+    # update tracking class parameters
+    left_line.radius_of_curvature = left_curverad
+    right_line.radius_of_curvature = right_curverad
+
+    # base x-position of left lane line
+    left_base_pos  = np.absolute(left_fit[0]*(y_eval*ym_per_pix*1000)**2+left_fit[1]*y_eval*ym_per_pix*1000+left_fit[0])
+    # base x-position of left lane line
+    right_base_pos = np.absolute(right_fit[0]*(y_eval*ym_per_pix*1000)**2+right_fit[1]*y_eval*ym_per_pix*1000+right_fit[0])
+
+    left_line.line_base_pos = img_size[0]/2*xm_per_pix*1000-(left_base_pos+right_base_pos)/2
+
+    # Get current left lane line base position
+    left_base_P = np.absolute(left_fit[0]*(y_eval)**2+left_fit[1]*y_eval+left_fit[0])
+
+    if len(left_line.recent_xfitted) > 0:# if cached fitted list not empty
+        if np.absolute(left_base_P - np.mean(left_line.recent_xfitted)) > max_dev:
+            left_line.detected = False
+        else:
+            left_line.detected = True
+            left_line.recent_xfitted.append(left_base_P)
+            # if list exceeds max size then delete first element
+            if len(left_line.recent_xfitted) > keep_max:
+                del left_line.recent_xfitted[0]
+            # calculate average x for left line
+            left_line.bestx = np.mean(left_line.recent_xfitted)
+    else: #then append the first fitted x
+        left_line.recent_xfitted.append(left_base_P)
+        left_line.bestx = left_base_P
+        left_line.detected = True
+
+    # Get current right lane line base position
+    right_base_P = np.absolute(right_fit[0]*(y_eval)**2+right_fit[1]*y_eval+right_fit[0])
+
+    if len(right_line.recent_xfitted) > 0:
+        if np.absolute(right_base_P - np.mean(right_line.recent_xfitted)) > max_dev:
+            right_line.detected = False
+        else:
+            right_line.detected = True
+            right_line.recent_xfitted.append(right_base_P)
+            # if list exceeds max size then delete first element
+            if len(right_line.recent_xfitted) > keep_max:
+                del right_line.recent_xfitted[0]
+            # update average x for left line
+            right_line.bestx = np.mean(right_line.recent_xfitted)
+    else:
+        right_line.recent_xfitted.append(right_base_P)
+        right_line.bestx = right_base_P
+        right_line.detected = True
 
     # Create an image to draw the lines on
     warp_zero = np.zeros_like(binary_warped).astype(np.uint8)
@@ -364,6 +424,11 @@ def pipeline(image = None):
     newwarp = cv2.warpPerspective(color_warp, Minv, (image.shape[1], image.shape[0])) 
     # Combine the result with the original image
     result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+
+    cv2.putText(result, 'Left lane radius : {0:.3f} km'.format(left_line.radius_of_curvature), (int(img_size[0]/4),30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
+    cv2.putText(result, 'Right lane radius: {0:.3f} km'.format(right_line.radius_of_curvature), (int(img_size[0]/4),60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
+    cv2.putText(result, 'Deviation from line: {0:.1f} m'.format(left_line.line_base_pos), (int(img_size[0]/4),90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
+
     return result
 
 
