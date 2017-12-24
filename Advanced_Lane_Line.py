@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import glob
 
+#=======================Start of Camera calibration==============================#
 # read in all images and store in an array
 images = glob.glob('camera_cal/calibration*.jpg')
 
@@ -40,33 +41,9 @@ for frame in images:
         
 #use obtained object points and image points to calibrate camera
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints,img_size, None, None)
+#===========================End of Camera calibration==============================#
 
-
-def region_of_interest(img, vertices):
-    """
-    Applies an image mask.
-    
-    Only keeps the region of the image defined by the polygon
-    formed from `vertices`. The rest of the image is set to black.
-    """
-    #defining a blank mask to start with
-    mask = np.zeros_like(img)   
-    
-    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
-    if len(img.shape) > 2:
-        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
-        ignore_mask_color = (255,) * channel_count
-    else:
-        ignore_mask_color = 255
-        
-    #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-    
-    #returning the image only where mask pixels are nonzero
-    masked_image = cv2.bitwise_and(img, mask)
-    return masked_image
-
-
+#=======================Start of Thresholding==============================#
 def sobelx_color_threshold(img, s_thresh=(170, 255), sx_thresh=(30, 100)):
     img = np.copy(img)
     
@@ -100,20 +77,9 @@ def sobelx_color_threshold(img, s_thresh=(170, 255), sx_thresh=(30, 100)):
 #     color_binary = np.dstack(( np.zeros_like(sxbinary), np.zeros_like(sxbinary), s_binary))
     
     return s_binary*255,undist
+#===========================End of Thresholding==============================#
 
-def perspective_transform(img = None,src = None,dst = None):
-    
-    # use calibrated camera mtx, dist to undistort raw image
-    warped, M, Minv = img,None,None
-
-    # get M and Minv, the transform matrix and the inverse matrix
-    M = cv2.getPerspectiveTransform(src, dst)
-    Minv = cv2.getPerspectiveTransform(dst,src)
-    # warp image to a top-down view
-    warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
-    
-    return warped, M, Minv
-
+#=======================Start of Region of Interest==============================#
 # image shape
 imshape = image_cali.shape
 # vertices for interest region mask
@@ -123,6 +89,32 @@ vertices = np.array([[(imshape[1]*0.1,imshape[0]-1),
                       (imshape[1]*0.95,imshape[0]-1)]],
                     dtype=np.int32)
 
+def region_of_interest(img, vertices):
+    """
+    Applies an image mask.
+    
+    Only keeps the region of the image defined by the polygon
+    formed from `vertices`. The rest of the image is set to black.
+    """
+    #defining a blank mask to start with
+    mask = np.zeros_like(img)   
+    
+    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
+    if len(img.shape) > 2:
+        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
+        ignore_mask_color = (255,) * channel_count
+    else:
+        ignore_mask_color = 255
+        
+    #filling pixels inside the polygon defined by "vertices" with the fill color    
+    cv2.fillPoly(mask, vertices, ignore_mask_color)
+    
+    #returning the image only where mask pixels are nonzero
+    masked_image = cv2.bitwise_and(img, mask)
+    return masked_image
+#===========================End of Thresholding==============================#
+
+#=======================Start of Perspective Transform==============================#
 # points in original image to project
 src = np.float32(
     [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
@@ -135,6 +127,21 @@ dst = np.float32(
     [(img_size[0] / 4), img_size[1]],
     [(img_size[0] * 3 / 4), img_size[1]],
     [(img_size[0] * 3 / 4), 0]])
+    
+def perspective_transform(img = None,src = None,dst = None):
+    
+    # use calibrated camera mtx, dist to undistort raw image
+    warped, M, Minv = img,None,None
+
+    # get M and Minv, the transform matrix and the inverse matrix
+    M = cv2.getPerspectiveTransform(src, dst)
+    Minv = cv2.getPerspectiveTransform(dst,src)
+    # warp image to a top-down view
+    warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)
+    
+    return warped, M, Minv
+#===========================End of Perspective Transform==============================#
+
 
 # Define a class to receive the characteristics of each line detection
 class Line():
@@ -571,21 +578,18 @@ from moviepy.editor import VideoFileClip
 from IPython.display import HTML
 import os
 
+# process video files
+project_output = 'test_video/output_project_video.mp4'
+clip1 = VideoFileClip("test_video/project_video.mp4")
+white_clip = clip1.fl_image(pipeline) #NOTE: this function expects color images!!
+white_clip.write_videofile(os.path.join(project_output), audio=False,verbose = True, progress_bar = True)
+
 challenge_output = 'test_video/output_challenge_video.mp4'
-# clip1 = VideoFileClip("test_video/challenge_video.mp4")
-# white_clip = clip1.fl_image(pipeline) #NOTE: this function expects color images!!
-# white_clip.write_videofile(os.path.join(challenge_output), audio=False,verbose = True, progress_bar = True)
+clip1 = VideoFileClip("test_video/challenge_video.mp4")
+white_clip = clip1.fl_image(pipeline) #NOTE: this function expects color images!!
+white_clip.write_videofile(os.path.join(challenge_output), audio=False,verbose = True, progress_bar = True)
 
-cap = cv2.VideoCapture(challenge_output)
-
-while(cap.isOpened()):
-    ret, frame = cap.read()
-
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-    cv2.imshow('frame',gray)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+harder_challenge_output = 'test_video/output_harder_challenge_video.mp4'
+clip1 = VideoFileClip("test_video/harder_challenge_video.mp4")
+white_clip = clip1.fl_image(pipeline) #NOTE: this function expects color images!!
+white_clip.write_videofile(os.path.join(harder_challenge_output), audio=False,verbose = True, progress_bar = True)
