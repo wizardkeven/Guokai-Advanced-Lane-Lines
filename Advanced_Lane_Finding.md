@@ -11,8 +11,11 @@ The goals / steps of this project are the following:
 * Warp the detected lane boundaries back onto the original image.
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
-histogram_of_ lower_half_image.png
-
+_You can run the code by:_
+```
+python Advanced_Lane_Line.py
+```
+This will read in video located in ./examples/project_video.mp4,./examples/challenge_video.mp4,./examples/harder_challenge_video.mp4 and generated videos with lane lines and live parameters drawing on with prefix name of output_. 
 [//]: # (Image References)
 
 [image1]: ./examples/undistort_output.png "Undistorted"
