@@ -137,7 +137,7 @@ I implemented all those steps above in lines #533 through #570 in my code in `Ad
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](https://youtu.be/Ty4M1DVm2pA)
+Here's a [link to my video result](./test_video/output_project_video.mp4)
 
 ---
 
@@ -146,3 +146,34 @@ Here's a [link to my video result](https://youtu.be/Ty4M1DVm2pA)
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+
+I use parameters provided in course code for image undistortion, color and sobel thresholding and also perspective transform and it works well on tested images and captured images. There are not too much to go into detail on this part.
+
+The real challenge is actually the stratagy of how to detect and draw lane lines for video. Because we can't tell how our code performs until applying it on a consecutive images steam with varying lane line curvature, road situation and light condition. I spend quite some time on tuning parameters to fit on test images, but it turns out it not so significant for the real challenge. The first generated video was catastrophic on two turnings with strong light and completely lost tracking of right lane line. This reminds me to consider deeply the lane detection stratagy rather than a half understood stratagy.
+
+At first, I captured the images of video clip where my code detected realy bad(_video clip of 21 sec~22sec_ in project.video). Then I found the output of _right lane line base position_ is completed deviated from base point. So it means I need apply the previous "best fit" to replace the current detected one. Then **how to decide "best fit ?" "how to determine a bad detection? etc"** all these problem arised when it comes to "smoothing lane lines".
+
+In fact, I didn't realize the importance of the given _**line**_ class even how to use it to smoothe the lines at first. In fact, caching previous parameters can help decide the problem as:
+* if the current detection fails
+* if I need to calculate lane lines from histogram instead of using averaged fit
+* if I need dump the tracking parameters and restart
+In fact, in answering all these questions, the final stratagy has come out most of it. Here is the protocol I use to make lane lines smoothe:
+* Start from histogram detection and initialize all parameters with this result
+* if lane line position _**left_base_P**_ or _**right_base_P**_ deviation from past "bestx" is larger than threshold value _**max_dev**_, then the detection for left(or right) fails, use cached _**best_fit**_, and don't update parameters
+* if not, then the detection succeeds, use current detected _**fit**_, add current parameters into line, recalculate _**bestx**_ and _**best_fit**_.
+* if bad detection rate exceeds 30% but smaller than 80% then calculate lane lines from histogram for next frame.
+* if exeeds 80%, dump line parameters
+* if caching list for past "Xs" and "fit" exceeds max size _**keep_max**_, remove least recent records.
+
+The threshold values for above pipeline are approached by real experimentations. Max size _**keep_max**_ for caching list and max acceptable deviation _**max_dev**_ are two tricky parameters. If we keep tracking a too long list, the previous values will have too much weight on current detection. In this situation, it will deviate too much if current detection is a perfect one. In other hand, if we give  _**max_dev**_ a low threshold, most of detections would be "fails" and the tracking list will not contain enough correct data to get a "good" averaged value when detection fails.
+
+More details are all included in `Advanced_Lane_Line.py` and it is well commented for read. You can check it to get more information.
+
+
+
+
+
+
+
+
+
