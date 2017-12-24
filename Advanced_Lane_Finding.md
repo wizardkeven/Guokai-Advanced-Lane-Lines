@@ -138,6 +138,7 @@ I implemented all those steps above in lines #533 through #570 in my code in `Ad
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
 Here's a [link to my video result](./test_video/output_project_video.mp4)
+There contains also the output for [challenge_video.mp4](https://github.com/wizardkeven/Guokai-Advanced-Lane-Lines/blob/master/test_video/output_challenge_video.mp4) and [harder_challenge_video.mp4](https://github.com/wizardkeven/Guokai-Advanced-Lane-Lines/blob/master/test_video/output_harder_challenge_video.mp4).
 
 ---
 
