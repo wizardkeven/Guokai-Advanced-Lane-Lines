@@ -15,7 +15,8 @@ _You can run the code by:_
 ```
 python Advanced_Lane_Line.py
 ```
-This will read in video located in ./examples/project_video.mp4,./examples/challenge_video.mp4,./examples/harder_challenge_video.mp4 and generated videos with lane lines and live parameters drawing on with prefix name of output_. 
+This will read in video located in ./examples/project_video.mp4,./examples/challenge_video.mp4,./examples/harder_challenge_video.mp4 and generated videos with lane lines and live parameters drawing on with prefix name of output_.
+
 [//]: # (Image References)
 
 [image1]: ./examples/undistort_output.png "Undistorted"
