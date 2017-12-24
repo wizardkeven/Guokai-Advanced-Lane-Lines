@@ -112,7 +112,7 @@ def region_of_interest(img, vertices):
     #returning the image only where mask pixels are nonzero
     masked_image = cv2.bitwise_and(img, mask)
     return masked_image
-#===========================End of Thresholding==============================#
+#===========================End of Region of Interest==============================#
 
 #=======================Start of Perspective Transform==============================#
 # points in original image to project
@@ -127,7 +127,7 @@ dst = np.float32(
     [(img_size[0] / 4), img_size[1]],
     [(img_size[0] * 3 / 4), img_size[1]],
     [(img_size[0] * 3 / 4), 0]])
-    
+
 def perspective_transform(img = None,src = None,dst = None):
     
     # use calibrated camera mtx, dist to undistort raw image
