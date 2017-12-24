@@ -1,4 +1,3 @@
-# Guokai-Advanced-Lane-Lines
 ## Advanced Lane Finding Project
 
 The goals / steps of this project are the following:
@@ -12,7 +11,11 @@ The goals / steps of this project are the following:
 * Warp the detected lane boundaries back onto the original image.
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
-histogram_of_ lower_half_image.png
+_You can run the code by:_
+```
+python Advanced_Lane_Line.py
+```
+This will read in video located in ./examples/project_video.mp4,./examples/challenge_video.mp4,./examples/harder_challenge_video.mp4 and generated videos with lane lines and live parameters drawing on with prefix name of output_.
 
 [//]: # (Image References)
 
@@ -170,12 +173,3 @@ In fact, in answering all these questions, the final stratagy has come out most 
 The threshold values for above pipeline are approached by real experimentations. Max size _**keep_max**_ for caching list and max acceptable deviation _**max_dev**_ are two tricky parameters. If we keep tracking a too long list, the previous values will have too much weight on current detection. In this situation, it will deviate too much if current detection is a perfect one. In other hand, if we give  _**max_dev**_ a low threshold, most of detections would be "fails" and the tracking list will not contain enough correct data to get a "good" averaged value when detection fails.
 
 More details are all included in `Advanced_Lane_Line.py` and it is well commented for read. You can check it to get more information.
-
-
-
-
-
-
-
-
-
