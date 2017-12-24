@@ -11,6 +11,8 @@ The goals / steps of this project are the following:
 * Warp the detected lane boundaries back onto the original image.
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
+histogram_of_ lower_half_image.png
+
 [//]: # (Image References)
 
 [image1]: ./examples/undistort_output.png "Undistorted"
@@ -21,7 +23,10 @@ The goals / steps of this project are the following:
 [image6]: ./examples/example_output.jpg "Output"
 [image7]: ./output_images/regionofinterest.png "Region of interest image"
 [image8]: ./output_images/undistort_threshold_region_persTran_image.png "Processed image"
-[video1]: ./project_video.mp4 "Video"
+[image9]: ./output_images/histogram_of_lower_half_image.png "histogram of image"
+[image10]: ./output_images/perspective-transformed_image.png "perspective transform of image"
+[image11]: ./output_images/curvature.png "curvature of detected lane lines"
+[video1]: ./test_video/output_project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
@@ -97,25 +102,34 @@ vertices = np.array([[(imshape[1]*0.1,imshape[0]-1),
                       (imshape[1]*0.95,imshape[0]-1)]],
                     dtype=np.int32)
 ```
-I verified that my _region of interest_ and _perspective transform_ was working as expected by first mask the _trapezoid_ on the undistorted image and then drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+
+The mask region is as below:
 
 ![alt text][image7]
 
+I verified that my _region of interest_ and _perspective transform_ was working as expected by first mask the _trapezoid_ on the undistorted image and then drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+
+![alt text][image8]
+
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+Then I looked up to course code and use histogram calculation to determine lane lines positions on bottom of image like this:
+
+![alt text][image10] ![Histogram of lower part image][image9]
+
+and fit my lane lines with a 2nd order polynomial kinda like this:
 
 ![alt text][image5]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+I did this in lines #553 through #540 in my code in `Advanced_Lane_Line.py`.
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I implemented all those steps above in lines #533 through #570 in my code in `Advanced_Lane_Line.py` in the function `pipe_line()`.  Here is an example of my result on a test image:
 
-![alt text][image6]
+![alt text][image11]
 
 ---
 
@@ -123,7 +137,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./test_video/output_project_video.mp4)
 
 ---
 
