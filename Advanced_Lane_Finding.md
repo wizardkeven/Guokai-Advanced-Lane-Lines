@@ -172,13 +172,10 @@ In fact, in answering all these questions, the final stratagy has come out most 
 
 The threshold values for above pipeline are approached by real experimentations. Max size _**keep_max**_ for caching list and max acceptable deviation _**max_dev**_ are two tricky parameters. If we keep tracking a too long list, the previous values will have too much weight on current detection. In this situation, it will deviate too much if current detection is a perfect one. In other hand, if we give  _**max_dev**_ a low threshold, most of detections would be "fails" and the tracking list will not contain enough correct data to get a "good" averaged value when detection fails.
 
+A possible improvement could be :
+* try more color space thresholding for yellow line detection and different light conditions.
+* finetune thresholding parameters
+* use more telemetry for sanity check like average lane line width check, consistency check of distance of lane lines.
+* try calculate on different curvature conditions
+
 More details are all included in `Advanced_Lane_Line.py` and it is well commented for read. You can check it to get more information.
-
-
-
-
-
-
-
-
-
