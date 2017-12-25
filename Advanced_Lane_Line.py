@@ -164,6 +164,16 @@ class Line():
         self.line_base_pos = None 
         #difference of fit lane line X-coordinate between last and new fits
         self.diffs = 0.0
+
+    def smooth(self, prev, curr, coeficient = 0.4):
+        '''
+         exponential smoothing
+        :param prev: old value
+        :param curr: new value
+        :param coeficient: smoothing coef.
+        :return:
+        '''
+        return curr*coeficient + prev*(1-coeficient)
         
 # track for left line
 left_line = Line()
@@ -373,14 +383,18 @@ def pipeline(image = None, left_line = left_line, right_line = right_line):
         else: 
             #then update current tracked parameters
             # Add current detection result
-            left_use = 'fails!'
+            left_use = 'success!'
             left_line.detected.append(True)
+            # smooth output 
+            left_base_P = left_line.smooth(left_line.bestx, left_base_P)
             # add detection result to tracking list
             left_line.recent_xfitted.append(left_base_P)
             # check if exceeds max size
             if len(left_line.recent_xfitted) > keep_max:
                 # Then delete least recent records
                 del left_line.recent_xfitted[0]
+            # smooth coefficients
+            left_fit = left_line.smooth(left_line.best_fit, left_fit)
             # add current fit into tracking list
             left_line.recent_fit.append(left_fit)
             # check if exceeds max size
@@ -447,9 +461,11 @@ def pipeline(image = None, left_line = left_line, right_line = right_line):
         # or this detection is acceptable
         else: 
             #then update current tracked parameters
-#             print('Right lane detected!')
+            right_use = "success!"
             # Add current detection result
             right_line.detected.append(True)
+            # smooth output
+            right_base_P = right_line.smooth(right_line.bestx, right_base_P)
             # add detection result to tracking list
             right_line.recent_xfitted.append(right_base_P)
             # check if exceeds max size
@@ -457,9 +473,10 @@ def pipeline(image = None, left_line = left_line, right_line = right_line):
                 # Then delete least recent records
                 del right_line.recent_xfitted[0]
            
+            # smooth output
+            right_fit = right_line.smooth(right_line.best_fit, right_fit)
             # add current fit into tracking list
             right_line.recent_fit.append(right_fit)
-            right_use = "success!"
             # check if exceeds max size
             if len(right_line.recent_fit) > keep_max:
                 right_line.recent_fit = right_line.recent_fit[1:]
@@ -523,13 +540,13 @@ def pipeline(image = None, left_line = left_line, right_line = right_line):
 #     print('left_line is {} and type is: {}'.format(left_line.recent_fit[0],np.array(left_line.recent_fit[0]).shape))
     # Draw final lanes
       # base x-position of left lane line
-    left_base_pos  = np.absolute(left_fit[0]*(y_eval*ym_per_pix*1000)**2+left_fit[1]*y_eval*ym_per_pix*1000+left_fit[0])
+    left_base_pos  = np.absolute(left_fit[0]*y_eval**2+left_fit[1]*y_eval+left_fit[2])
     # base x-position of left lane line
-    right_base_pos = np.absolute(right_fit[0]*(y_eval*ym_per_pix*1000)**2+right_fit[1]*y_eval*ym_per_pix*1000+right_fit[0])
+    right_base_pos = np.absolute(right_fit[0]*y_eval**2+right_fit[1]*y_eval+right_fit[2])
 
     
     # meters of deviation from mid-point meatured by detected lane lines
-    deviation_from_mid_point = img_size[0]/2*xm_per_pix*1000-(left_base_pos+right_base_pos)/2
+    deviation_from_mid_point = (img_size[0]/2-(left_base_pos+right_base_pos)/2)*xm_per_pix*1000
     
     # Fit new polynomials to x,y in world space
     left_fit_cr = np.polyfit(lefty*ym_per_pix, leftx*xm_per_pix, 2)
@@ -566,8 +583,8 @@ def pipeline(image = None, left_line = left_line, right_line = right_line):
     cv2.putText(result, 'Left lane diffs : {0:.3f}'.format(left_line.diffs), (int(img_size[0]/4),120), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
     cv2.putText(result, 'Right lane diffs: {0:.3f}'.format(right_line.diffs), (int(img_size[0]/4),150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
 #     cv2.putText(result, 'Right_fit : {}'.format(right_line.best_fit), (0,180), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
-    cv2.putText(result, 'Right lane {}: {}'.format(left_use,left_fit), (0,210), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
-    cv2.putText(result, 'Left lane {}: {}'.format(right_use,right_fit), (0,180), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
+    # cv2.putText(result, 'Right lane {}: {}'.format(left_use,left_fit), (0,210), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
+    # cv2.putText(result, 'Left lane {}: {}'.format(right_use,right_fit), (0,180), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2, cv2.LINE_4)
 
 
     
